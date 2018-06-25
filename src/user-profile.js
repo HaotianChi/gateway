@@ -26,6 +26,7 @@ const Users = require('./models/users');
 const Profile = {
   init: function() {
     this.baseDir = config.get('profileDir');
+    this.h_localDir = config.get('projectDir');
     this.configDir = path.join(this.baseDir, 'config');
     this.sslDir = path.join(this.baseDir, 'ssl');
     this.uploadsDir = path.join(this.baseDir, 'uploads');
@@ -35,7 +36,9 @@ const Profile = {
     if (process.env.NODE_ENV === 'test') {
       this.addonsDir = path.join(this.gatewayDir, 'src', 'addons-test');
     } else {
-      this.addonsDir = path.join(this.baseDir, 'addons');
+      //this.addonsDir = path.join(this.baseDir, 'addons');
+      //localize the addon directory
+      this.addonsDir = path.join(this.h_localDir, 'addons');
     }
   },
 

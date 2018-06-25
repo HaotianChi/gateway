@@ -17,6 +17,7 @@ module.exports = {
   cli: true,
 
   profileDir: `${home}/.mozilla-iot`,
+  projectDir: `${home}/Desktop`,
 
   ports: {
     https: 4443,
@@ -68,3 +69,8 @@ module.exports = {
   bcryptRounds: 2,
   updateUrl: 'https://api.mozilla-iot.org:8443/releases',
 };
+
+
+
+
+console.log(module.exports.projectDir);

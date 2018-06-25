@@ -615,28 +615,10 @@ class AddonManager extends EventEmitter {
 
     // Load the add-on
     console.log('Loading add-on:', manifest.name);
-    if (config.get('ipc.protocol') === 'inproc') {
-      // This is a special case where we load the adapter directly
-      // into the gateway, but we use IPC comms to talk to the
-      // add-on (i.e. for testing)
-      const pluginClient = new PluginClient(manifest.name,
-                                            {verbose: false});
-      try {
-        const addonManagerProxy = await pluginClient.register();
-        console.log('Loading add-on', manifest.name, 'as plugin');
-        const addonLoader = dynamicRequire(addonPath);
-        addonLoader(addonManagerProxy, newSettings, errorCallback);
-      } catch (e) {
-        const err =
-          `Failed to register package with gateway: ${manifest.name}\n${e}`;
-        console.error(err);
-        return Promise.reject(err);
-      }
-    } else {
-      // This is the normal plugin adapter case, tell the PluginServer
-      // to load the plugin.
-      this.pluginServer.loadPlugin(addonPath, newSettings);
-    }
+    // This is the normal plugin adapter case, tell the PluginServer
+    // to load the plugin.
+    this.pluginServer.loadPlugin(addonPath, newSettings);
+    console.log("finish loading add-on: ", packageName);
   }
 
   /**
@@ -684,6 +666,8 @@ class AddonManager extends EventEmitter {
       }
     });
 
+    console.log("finish loading addons!");
+    /*
     if (process.env.NODE_ENV !== 'test') {
       // Check for add-ons in 10 seconds (allow add-ons to load first).
       setTimeout(() => {
@@ -693,7 +677,7 @@ class AddonManager extends EventEmitter {
         const delay = 24 * 60 * 60 * 1000;
         setInterval(this.updateAddons, delay);
       }, 10000);
-    }
+    }*/
   }
 
   /**
@@ -867,6 +851,7 @@ class AddonManager extends EventEmitter {
    * @param {Boolean} enable Whether or not to enable the add-on after install
    * @returns A Promise that resolves when the add-on is installed.
    */
+  /* // we do not install addons from url
   async installAddonFromUrl(name, url, checksum, enable) {
     const tempPath = fs.mkdtempSync(`${os.tmpdir()}${path.sep}`);
     const destPath = path.join(tempPath, `${name}.tar.gz`);
@@ -922,6 +907,69 @@ class AddonManager extends EventEmitter {
       return Promise.reject(err);
     }
   }
+  */
+
+    /**
+   * Install an add-on.
+   *
+   * @param {String} name The package name
+   * @param {String} url The package URL
+   * @param {String} checksum SHA-256 checksum of the package
+   * @param {Boolean} enable Whether or not to enable the add-on after install
+   * @returns A Promise that resolves when the add-on is installed.
+   */
+  async h_installAddonFromLocal(packageName, enable) {
+    if (!this.addonsLoaded) {
+      const err =
+        'Cannot install add-on before other add-ons have been loaded.';
+      console.error(err);
+      return Promise.reject(err);
+    }   
+
+    const addonPath = path.join(UserProfile.addonsDir, packageName);
+
+    try {
+      // Create the add-on directory, if necessary
+      if (!fs.existsSync(addonPath)) {
+        fs.mkdirSync(addonPath);
+      }
+    } catch (e) {
+      const err = `Failed to create add-on directory: ${addonPath}\n${e}`;
+      console.error(err);
+      return Promise.reject(err);
+    }
+    
+    // Update the saved settings (if any) and enable the add-on
+    const key = `addons.${packageName}`;
+    let savedSettings = await Settings.get(key);
+    if (savedSettings) {
+      // Only enable if we're supposed to. Otherwise, keep whatever the current
+      // setting is.
+      if (enable) {
+        savedSettings.moziot.enabled = true;
+      }
+    } else {
+      // If this add-on is brand new, use the passed-in enable flag.
+      savedSettings = {
+        moziot: {
+          enabled: enable,
+        },
+      };
+    }
+    await Settings.set(key, savedSettings);
+
+    if (savedSettings.moziot.enabled) {
+      // Now, load the add-on
+      try {
+        await this.loadAddon(packageName);
+      } catch (e) {
+        // Clean up if loading failed
+        cleanup();
+        return Promise.reject(`Failed to load add-on: ${packageName}\n${e}`);
+      }
+    }
+  }
+
 
   /**
    * @method installAddon
@@ -939,11 +987,13 @@ class AddonManager extends EventEmitter {
       return Promise.reject(err);
     }
 
+    
     if (!fs.lstatSync(packagePath).isFile()) {
       const err = `Cannot extract invalid path: ${packagePath}`;
       console.error(err);
       return Promise.reject(err);
     }
+    
 
     const addonPath = path.join(UserProfile.addonsDir, packageName);
 
@@ -958,6 +1008,7 @@ class AddonManager extends EventEmitter {
       return Promise.reject(err);
     }
 
+    
     const cleanup = () => {
       if (fs.lstatSync(addonPath).isDirectory()) {
         rimraf(addonPath, {glob: false}, (e) => {
@@ -967,9 +1018,11 @@ class AddonManager extends EventEmitter {
         });
       }
     };
+    
 
     console.log(`Expanding add-on ${packagePath} into ${addonPath}`);
 
+    
     try {
       // Try to extract the tarball
       await tar.x({file: packagePath, strip: 1, cwd: addonPath}, ['package']);
@@ -981,6 +1034,7 @@ class AddonManager extends EventEmitter {
       console.error(err);
       return Promise.reject(err);
     }
+    
 
     // Update the saved settings (if any) and enable the add-on
     const key = `addons.${packageName}`;
@@ -1087,6 +1141,7 @@ class AddonManager extends EventEmitter {
     return deferredWait.promise;
   }
 
+
   /**
    * @method updateAddons
    *
@@ -1094,6 +1149,7 @@ class AddonManager extends EventEmitter {
    *
    * @returns A promise which is resolved when updating is complete.
    */
+  /* // we do not update addons
   async updateAddons() {
     const api = config.get('addonManager.api');
     const architecture = Platform.getArchitecture();
@@ -1185,6 +1241,7 @@ class AddonManager extends EventEmitter {
       }
     });
   }
+  */
 }
 
 module.exports = new AddonManager();

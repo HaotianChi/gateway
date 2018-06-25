@@ -43,7 +43,6 @@ const SettingsScreen = {
     this.addonConfigSettings = document.getElementById('addon-config-settings');
     this.addonDiscoverySettings =
       document.getElementById('addon-discovery-settings');
-    this.addonConfigSettings = document.getElementById('addon-config-settings');
     this.experimentSettings = document.getElementById('experiment-settings');
     this.updateSettings = document.getElementById('update-settings');
     this.authorizationSettings =
@@ -555,8 +554,15 @@ const SettingsScreen = {
       return resp.json();
     }).then((body) => {
       for (const addon of body) {
+        /*
         // Skip incompatible add-ons.
         if (addon.api.min > api || addon.api.max < api) {
+          continue;
+        }
+        */
+
+        //skip other add-ons, now we only support zigbee-adapter
+        if (addon.name !== "zigbee-adapter") {
           continue;
         }
 

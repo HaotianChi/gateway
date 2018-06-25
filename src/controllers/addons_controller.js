@@ -143,7 +143,8 @@ AddonsController.post('/', async (request, response) => {
   const checksum = request.body.checksum;
 
   try {
-    await AddonManager.installAddonFromUrl(name, url, checksum, true);
+    //await AddonManager.installAddonFromUrl(name, url, checksum, false);
+    await AddonManager.h_installAddonFromLocal(name, true);
     response.sendStatus(200);
   } catch (e) {
     response.status(400).send(e);
@@ -165,7 +166,8 @@ AddonsController.patch('/:addonName', async (request, response) => {
 
   try {
     await AddonManager.uninstallAddon(name, true, false);
-    await AddonManager.installAddonFromUrl(name, url, checksum, true);
+    //await AddonManager.installAddonFromUrl(name, url, checksum, false);
+    await AddonManager.h_installAddonFromLocal(name, true);
     response.sendStatus(200);
   } catch (e) {
     console.error(`Failed to update add-on: ${name}\n${e}`);
